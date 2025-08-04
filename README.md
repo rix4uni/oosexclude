@@ -32,13 +32,13 @@ Usage of oosexclude:
 ## Usage Examples
 ```bash
 # Uses the default exclude list URL
-cat urls.txt | oosexclude
+cat allsubs.txt | oosexclude
 
 # Specify a custom exclude list file
-cat urls.txt | oosexclude -e outofscope.txt
+cat allsubs.txt | oosexclude -e outofscope.txt
 
 # Specify a custom exclude list URL
-cat urls.txt | oosexclude -e https://example.com/custom_outofscope.txt
+cat allsubs.txt | oosexclude -e https://example.com/custom_outofscope.txt
 ```
 
 ## Output Examples
