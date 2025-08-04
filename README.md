@@ -1,5 +1,5 @@
 ## oosexclude
-Remove outofscope subdomains from https://github.com/rix4uni/scope/blob/main/outofscope.txt or a local outofscope.txt file.
+Remove outofscope subdomains from https://github.com/rix4uni/scope/blob/main/data/outofscope.txt or a local outofscope.txt file.
 
 ## Installation
 ```
@@ -24,7 +24,7 @@ cd oosexclude; go install
 ## Usage
 ```
 Usage of oosexclude:
-  -e, --exclude-list string   Path to exclude list file or URL (default "https://raw.githubusercontent.com/rix4uni/scope/refs/heads/main/outofscope.txt")
+  -e, --exclude-list string   Path to exclude list file or URL (default "https://raw.githubusercontent.com/rix4uni/scope/refs/heads/main/data/outofscope.txt")
       --verbose               enable verbose mode
   -v, --version               Print the version of the tool and exit.
 ```
