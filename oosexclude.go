@@ -2,19 +2,36 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
+	"path"
+
+	"github.com/spf13/pflag"
 )
+
+// prints the version message
+const version = "v0.0.2"
+
+func printVersion() {
+	fmt.Printf("Current oosexclude version: %s\n", version)
+}
 
 const defaultExcludeListURL = "https://raw.githubusercontent.com/rix4uni/scope/refs/heads/main/outofscope.txt"
 
 func main() {
 	// Parse the exclude list file flag, with the default URL as fallback
-	excludeListFile := flag.String("exclude-list", defaultExcludeListURL, "Path to exclude list file or URL")
-	flag.Parse()
+	excludeListFile := pflag.StringP("exclude-list", "e", defaultExcludeListURL, "Path to exclude list file or URL")
+	verbose := pflag.Bool("verbose", false, "enable verbose mode")
+	version := pflag.BoolP("version", "v", false, "Print the version of the tool and exit.")
+	pflag.Parse()
+
+	// Print version and exit if -version flag is provided
+	if *version {
+		printVersion()
+		return
+	}
 
 	// Read exclude patterns from file or URL
 	excludePatterns, err := readExcludePatterns(*excludeListFile)
@@ -27,8 +44,16 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !isExcluded(line, excludePatterns) {
-			fmt.Println(line)
+		if isExcluded(line, excludePatterns) {
+			if *verbose {
+				fmt.Printf("IGNORED: %s\n", line)
+			}
+		} else {
+			if *verbose {
+				fmt.Printf("NOT IGNORED: %s\n", line)
+			} else {
+				fmt.Println(line)
+			}
 		}
 	}
 
@@ -87,17 +112,13 @@ func readExcludePatterns(source string) ([]string, error) {
 // Patterns with `*` should match only subdomains, not exact domain names.
 func isExcluded(url string, patterns []string) bool {
 	for _, pattern := range patterns {
-		if strings.HasPrefix(pattern, "*.") {
-			// Match subdomains only (e.g., "*.arubanetworks.com" matches "admin.arubanetworks.com" but not "arubanetworks.com")
-			subdomainPattern := pattern[2:]
-			if strings.HasSuffix(url, subdomainPattern) && url != subdomainPattern {
-				return true
-			}
-		} else {
-			// Exact match
-			if url == pattern {
-				return true
-			}
+		match, err := path.Match(pattern, url)
+		if err != nil {
+			// If the pattern is invalid, skip it
+			continue
+		}
+		if match {
+			return true
 		}
 	}
 	return false
