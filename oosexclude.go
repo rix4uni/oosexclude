@@ -12,13 +12,13 @@ import (
 )
 
 // prints the version message
-const version = "v0.0.2"
+const version = "v0.0.3"
 
 func printVersion() {
 	fmt.Printf("Current oosexclude version: %s\n", version)
 }
 
-const defaultExcludeListURL = "https://raw.githubusercontent.com/rix4uni/scope/refs/heads/main/outofscope.txt"
+const defaultExcludeListURL = "https://raw.githubusercontent.com/rix4uni/scope/refs/heads/main/data/outofscope.txt"
 
 func main() {
 	// Parse the exclude list file flag, with the default URL as fallback
