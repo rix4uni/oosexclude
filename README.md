@@ -8,9 +8,9 @@ go install github.com/rix4uni/oosexclude@latest
 
 ## Download prebuilt binaries
 ```
-wget https://github.com/rix4uni/oosexclude/releases/download/v0.0.2/oosexclude-linux-amd64-0.0.2.tgz
-tar -xvzf oosexclude-linux-amd64-0.0.2.tgz
-rm -rf oosexclude-linux-amd64-0.0.2.tgz
+wget https://github.com/rix4uni/oosexclude/releases/download/v0.0.3/oosexclude-linux-amd64-0.0.3.tgz
+tar -xvzf oosexclude-linux-amd64-0.0.3.tgz
+rm -rf oosexclude-linux-amd64-0.0.3.tgz
 mv oosexclude ~/go/bin/oosexclude
 ```
 Or download [binary release](https://github.com/rix4uni/oosexclude/releases) for your platform.
