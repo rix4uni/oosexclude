@@ -17,12 +17,12 @@ Or download [binary release](https://github.com/rix4uni/oosexclude/releases) for
 
 ## Compile from source
 ```
-git clone --depth 1 github.com/rix4uni/oosexclude.git
+git clone --depth 1 https://github.com/rix4uni/oosexclude.git
 cd oosexclude; go install
 ```
 
 ## Usage
-```
+```yaml
 Usage of oosexclude:
   -e, --exclude-list string   Path to exclude list file or URL (default "https://raw.githubusercontent.com/rix4uni/scope/refs/heads/main/data/outofscope.txt")
       --verbose               enable verbose mode
@@ -30,7 +30,7 @@ Usage of oosexclude:
 ```
 
 ## Usage Examples
-```bash
+```yaml
 # Uses the default exclude list URL
 cat allsubs.txt | oosexclude
 
@@ -44,7 +44,7 @@ cat allsubs.txt | oosexclude -e https://example.com/custom_outofscope.txt
 ## Output Examples
 
 Given:
-```
+```yaml
 allsubs.txt:
 community.myfitnesspal.com
 community-stage.myfitnesspal.com
@@ -56,7 +56,7 @@ exchange.bullish.com
 ```
 
 With:
-```
+```yaml
 outofscope.txt:
 community*.myfitnesspal.com
 *.allin.movilepay.com
@@ -68,12 +68,12 @@ argocd.*.uidapi.com
 ```
 
 Command:
-```sh
+```yaml
 cat allsubs.txt | oosexclude -e outofscope.txt --verbose
 ```
 
 Output:
-```
+```yaml
 IGNORED: community.myfitnesspal.com
 IGNORED: community-stage.myfitnesspal.com
 IGNORED: img.allin.movilepay.com
@@ -84,6 +84,6 @@ IGNORED: exchange.bullish.com
 ```
 
 Without `-verbose`:
-```
+```yaml
 dashboard.rapyd.net
 ```
