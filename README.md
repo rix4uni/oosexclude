@@ -1,5 +1,5 @@
 ## oosexclude
-Filter subdomains using exclude (`--egrep`) or include (`--grep`) pattern lists, with support for glob wildcards and full regular expressions.
+Filter subdomains using exclude (`--egrep`) or include (`--grep`) pattern lists, with support for glob wildcards and full regular expressions. Optimized for large inputs (millions of lines) using combined regex matching and buffered I/O.
 
 ## Installation
 ```
@@ -8,9 +8,9 @@ go install github.com/rix4uni/oosexclude@latest
 
 ## Download prebuilt binaries
 ```
-wget https://github.com/rix4uni/oosexclude/releases/download/v0.0.4/oosexclude-linux-amd64-0.0.4.tgz
-tar -xvzf oosexclude-linux-amd64-0.0.4.tgz
-rm -rf oosexclude-linux-amd64-0.0.4.tgz
+wget https://github.com/rix4uni/oosexclude/releases/download/v0.0.5/oosexclude-linux-amd64-0.0.5.tgz
+tar -xvzf oosexclude-linux-amd64-0.0.5.tgz
+rm -rf oosexclude-linux-amd64-0.0.5.tgz
 mv oosexclude ~/go/bin/oosexclude
 ```
 Or download [binary release](https://github.com/rix4uni/oosexclude/releases) for your platform.
@@ -174,6 +174,17 @@ img.allin.movilepay.com
 argocd.test.uidapi.com
 techdev.ibotta.com
 exchange.bullish.com
+```
+
+Command (`--ignore-case` matches patterns case-insensitively):
+```yaml
+cat allsubs.txt | oosexclude --grep "v[1-9].hack.com" --ignore-case
+```
+
+Output (matches uppercase too):
+```yaml
+AUTH-V2.HACK.COM
+auth-v2.hack.com
 ```
 
 Command (`--stats` prints a summary to stderr):

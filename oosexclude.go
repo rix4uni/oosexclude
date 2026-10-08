@@ -12,7 +12,7 @@ import (
 )
 
 // prints the version message
-const version = "v0.0.4"
+const version = "v0.0.5"
 
 func printVersion() {
 	fmt.Printf("Current oosexclude version: %s\n", version)
@@ -41,8 +41,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	var excludeRegexps []*regexp.Regexp
-	var includeRegexps []*regexp.Regexp
+	var excludeRegexp *regexp.Regexp
+	var includeRegexp *regexp.Regexp
 
 	if pflag.CommandLine.Changed("grep") {
 		// Include mode: only load include patterns, skip exclude entirely
@@ -51,7 +51,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error reading include list: %v\n", err)
 			os.Exit(1)
 		}
-		includeRegexps = compilePatterns(raw, false, *ignoreCase)
+		includeRegexp = compilePatterns(raw, *ignoreCase)
 	} else {
 		// Exclude mode: load exclude patterns (default URL or explicit -e)
 		raw, err := readPatterns(*egrepFile)
@@ -59,7 +59,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error reading exclude list: %v\n", err)
 			os.Exit(1)
 		}
-		excludeRegexps = compilePatterns(raw, false, *ignoreCase)
+		excludeRegexp = compilePatterns(raw, *ignoreCase)
 	}
 
 	// Detect if stdout is a terminal for colored output
@@ -70,22 +70,25 @@ func main() {
 
 	// Filter input lines
 	var inputCount, keptCount int
+	out := bufio.NewWriter(os.Stdout)
 	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Buffer(make([]byte, 1*1024*1024), 1*1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
 		inputCount++
-		if len(includeRegexps) > 0 {
-			if re := findIncludeMatch(line, includeRegexps); re != nil {
-				fmt.Println(highlightMatch(line, re, colorEnabled))
+		if includeRegexp != nil {
+			if loc := includeRegexp.FindStringIndex(line); loc != nil {
+				fmt.Fprintln(out, highlightMatch(line, loc, colorEnabled))
 				keptCount++
 			}
 		} else {
-			if !isExcluded(line, excludeRegexps) {
-				fmt.Println(line)
+			if excludeRegexp == nil || !excludeRegexp.MatchString(line) {
+				fmt.Fprintln(out, line)
 				keptCount++
 			}
 		}
 	}
+	out.Flush()
 
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
@@ -154,9 +157,7 @@ func readPatterns(source string) ([]string, error) {
 
 // globToRegex converts a glob-style pattern to a regex string.
 // * -> .*, ? -> ., other regex special chars are escaped, [...] preserved as-is.
-// When anchored is true, wraps the result in ^...$ for full-line matching.
-// When ignoreCase is true, prepends (?i) for case-insensitive matching.
-func globToRegex(pattern string, anchored bool, ignoreCase bool) string {
+func globToRegex(pattern string) string {
 	var sb strings.Builder
 	inBracket := false
 	for i := 0; i < len(pattern); i++ {
@@ -181,59 +182,43 @@ func globToRegex(pattern string, anchored bool, ignoreCase bool) string {
 			sb.WriteByte(c)
 		}
 	}
-	result := sb.String()
-	if anchored {
-		result = "^" + result + "$"
-	}
-	if ignoreCase {
-		return "(?i)" + result
-	}
-	return result
+	return sb.String()
 }
 
-// compilePatterns compiles glob/regex pattern strings into *regexp.Regexp.
-// anchored=true adds ^...$ for full-line matching (used by --egrep).
-// ignoreCase=true prepends (?i) for case-insensitive matching.
-func compilePatterns(patterns []string, anchored bool, ignoreCase bool) []*regexp.Regexp {
-	var compiled []*regexp.Regexp
-	for _, pattern := range patterns {
-		re, err := regexp.Compile(globToRegex(pattern, anchored, ignoreCase))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: invalid pattern %q: %v\n", pattern, err)
+// compilePatterns joins all patterns into a single *regexp.Regexp using alternation.
+// This gives O(M) matching regardless of pattern count N, same as grep internals.
+// ignoreCase=true prepends (?i) to the combined regex.
+func compilePatterns(patterns []string, ignoreCase bool) *regexp.Regexp {
+	if len(patterns) == 0 {
+		return nil
+	}
+	parts := make([]string, 0, len(patterns))
+	for _, p := range patterns {
+		converted := globToRegex(p)
+		if _, err := regexp.Compile(converted); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: invalid pattern %q: %v\n", p, err)
 			continue
 		}
-		compiled = append(compiled, re)
+		parts = append(parts, "(?:"+converted+")")
 	}
-	return compiled
+	if len(parts) == 0 {
+		return nil
+	}
+	combined := strings.Join(parts, "|")
+	if ignoreCase {
+		combined = "(?i)" + combined
+	}
+	re, err := regexp.Compile(combined)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: could not compile combined pattern: %v\n", err)
+		return nil
+	}
+	return re
 }
 
-// isExcluded checks if the URL matches any compiled exclude pattern.
-func isExcluded(url string, regexps []*regexp.Regexp) bool {
-	for _, re := range regexps {
-		if re.MatchString(url) {
-			return true
-		}
-	}
-	return false
-}
-
-// findIncludeMatch returns the first compiled pattern that matches url, or nil.
-func findIncludeMatch(url string, regexps []*regexp.Regexp) *regexp.Regexp {
-	for _, re := range regexps {
-		if re.MatchString(url) {
-			return re
-		}
-	}
-	return nil
-}
-
-// highlightMatch wraps the first match in url with bold-red ANSI codes.
-func highlightMatch(line string, re *regexp.Regexp, color bool) string {
+// highlightMatch wraps the pre-found match location in bold-red ANSI codes.
+func highlightMatch(line string, loc []int, color bool) string {
 	if !color {
-		return line
-	}
-	loc := re.FindStringIndex(line)
-	if loc == nil {
 		return line
 	}
 	return line[:loc[0]] + "\033[01;31m" + line[loc[0]:loc[1]] + "\033[0m" + line[loc[1]:]
